@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Farmer Chatbot</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      background: #f0f8f5; 
+      padding: 20px; 
+      text-align: center;
+    }
+    h1 {
+      color: #2b7a0b;
+      margin-bottom: 20px;
+    }
+    #chatbox {
+      width: 500px; 
+      margin: auto; 
+      background: #fff; 
+      border: 2px solid #2b7a0b; 
+      padding: 20px; 
+      border-radius: 10px; 
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    #messages {
+      height: 300px; 
+      overflow-y: scroll; 
+      border: 1px solid #ddd; 
+      padding: 10px; 
+      background: #fafafa; 
+      text-align: left; 
+      border-radius: 6px;
+    }
+    .msg { margin: 10px 0; }
+    .user { color: green; font-weight: bold; }
+    .bot { color: blue; }
+    input[type="text"] { width: 65%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; }
+    button { 
+      padding: 10px 15px; 
+      margin: 5px;
+      background: #2b7a0b; 
+      color: #fff; 
+      border: none; 
+      border-radius: 5px; 
+      cursor: pointer;
+    }
+    button:hover {
+      background:blue;
+    }
+  </style>
+</head>
+<body>
+  <h1>🌾 AI-Based Farmer Query Support System</h1>
+  <div id="chatbox">
+    <h2>Farmer Chatbot (English / മലയാളം)</h2>
+    <div id="messages"></div>
+
+    <!-- Input field -->
+    <input type="text" id="userInput" placeholder="Ask about fertilizer, pesticide, or crop issue...">
+    <button onclick="sendMessage()">Send</button>
+    
+    <!-- Voice input button -->
+    <button onclick="startVoice()">🎤 Speak</button>
+
+    <!-- Image upload -->
+    <input type="file" id="imageUpload" accept="image/*">
+    <button onclick="sendImage()">Upload Image</button>
+  </div>
+
+  <script>
+    // Send text query
+    async function sendMessage() {
+      let input = document.getElementById("userInput").value;
+      if (!input) return;
+
+      let messages = document.getElementById("messages");
+      messages.innerHTML += `<div class="msg user">You: ${input}</div>`;
+
+      let response = await fetch("http://127.0.0.1:5000/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: input })
+      });
+
+      let data = await response.json();
+      messages.innerHTML += `<div class="msg bot"> Bot (EN): ${data.reply_en}</div>`;
+      messages.innerHTML += `<div class="msg bot"> ബോട്ട് (ML): ${data.reply_ml}</div>`;
+
+      document.getElementById("userInput").value = "";
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    // Voice input using Web Speech API
+    function startVoice() {
+      if (!('webkitSpeechRecognition' in window)) {
+        alert("Your browser does not support speech recognition.");
+        return;
+      }
+
+      let recognition = new webkitSpeechRecognition();
+      recognition.lang = "ml-IN"; // Malayalam (can change to "en-IN" for English)
+      recognition.start();
+
+      recognition.onresult = function(event) {
+        let transcript = event.results[0][0].transcript;
+        document.getElementById("userInput").value = transcript;
+        sendMessage();
+      };
+    }
+
+    // Send image (just upload, backend should handle analysis)
+    async function sendImage() {
+      let fileInput = document.getElementById("imageUpload");
+      if (fileInput.files.length === 0) return;
+
+      let file = fileInput.files[0];
+      let formData = new FormData();
+      formData.append("image", file);
+
+      let messages = document.getElementById("messages");
+      messages.innerHTML += `<div class="msg user"> You uploaded an image.</div>`;
+
+      let response = await fetch("http://127.0.0.1:5000/upload_image", {
+        method: "POST",
+        body: formData
+      });
+
+      let data = await response.json();
+      messages.innerHTML += `<div class="msg bot"> Bot (EN): ${data.reply_en}</div>`;
+      messages.innerHTML += `<div class="msg bot"> ബോട്ട് (ML): ${data.reply_ml}</div>`;
+    }
+  </script>
+</body>
+</html>
